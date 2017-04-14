@@ -41,6 +41,8 @@ Demo code for upcoming CircuitPlayground Express:
 * Author(s): Scott Shawcroft
 """
 
+import array
+
 class GenericDecode:
     def decode(self, input, output):
         while True:
@@ -82,3 +84,29 @@ class GenericDecode:
             if input[1] > space:
                 output[i // 8] |= 1
             print(input.popleft(), input.popleft())
+
+class GenericTransmit:
+    def __init__(self, header, one, zero, trail):
+        self.header = header
+        self.one = one
+        self.zero = zero
+        self.trail = trail
+
+    def transmit(self, pulseout, data):
+        durations = array.array('H', [0] * (2 + len(data) * 8 * 2 + 1))
+        durations[0] = self.header[0]
+        durations[1] = self.header[1]
+        durations[-1] = self.trail
+        out = 2
+        for byte in range(len(data)):
+            for i in range(7, -1, -1):
+                if (data[byte] & 1 << i) > 0:
+                    durations[out] = self.one[0]
+                    durations[out + 1] = self.one[1]
+                else:
+                    durations[out] = self.zero[0]
+                    durations[out + 1] = self.zero[1]
+                out += 2
+
+        print(durations)
+        pulseout.send(durations)
