@@ -44,19 +44,23 @@ Demo code for upcoming CircuitPlayground Express:
 import array
 
 class GenericDecode:
-    def decode(self, input, output):
+    def decode(self, input, output, debug=False):
         while True:
             # Wait for input
-            print("waiting for more")
+	    if debug: print("waiting for more")
             while len(input) < 3:
                 pass
-            print("not waiting")
+            if debug: print("not waiting")
             # Find the header
             if input[0] > 7000 and input[0] < 10000 and input[1] > 3000 and input[2] < 2000:
-                print("header", input.popleft(), input.popleft(), input[0], len(input))
+                head = [ input.popleft(), input.popleft()]
+		if debug:
+		    print("Header: ", head, input[0], len(input))
                 break
             else:
-                print("skip", input.popleft())
+		s = input.popleft()
+                if debug:
+		    print("Skip: ", s)
 
         # The header has started but wait for enough mark/space pairs to make up
         # the bytes we want.
@@ -72,18 +76,20 @@ class GenericDecode:
             space += input[2 * i + 1]
         mark /= bits
         space /= bits
-        print(mark, space)
+	if debug:
+	    print("Mark len: %d Space len: %d" % (mark, space))
         for i in range(len(output)):
             output[i] = 0
-        print(output)
         for i in range(bits):
-            if i % 8 == 0:
-                print()
             output[i // 8] = output[i // 8] << 1
             # TODO(tannewt): Make sure this works if the payload is all 0s or 1s.
             if input[1] > space:
                 output[i // 8] |= 1
-            print(input.popleft(), input.popleft())
+	    b = [input.popleft(), input.popleft()]
+	    if debug:
+		print("Bit #%d: %d %d" %(i, b[0], b[1]))
+		if i % 8 == 7:
+		    print()
 
 class GenericTransmit:
     def __init__(self, header, one, zero, trail):
