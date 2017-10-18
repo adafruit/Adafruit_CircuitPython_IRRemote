@@ -43,53 +43,117 @@ Demo code for upcoming CircuitPlayground Express:
 
 import array
 
-class GenericDecode:
-    def decode(self, input, output, debug=False):
-        while True:
-            # Wait for input
-	    if debug: print("waiting for more")
-            while len(input) < 3:
-                pass
-            if debug: print("not waiting")
-            # Find the header
-            if input[0] > 7000 and input[0] < 10000 and input[1] > 3000 and input[2] < 2000:
-                head = [ input.popleft(), input.popleft()]
-		if debug:
-		    print("Header: ", head, input[0], len(input))
+class IRDecodeException(Exception):
+    pass
+
+class IRNECRepeatException(Exception):
+    pass
+
+def bin(pulses):
+    bins = [[pulses[0],0]]
+    
+    for i in range(len(pulses)):
+        p = pulses[i]
+        matchedbin = False
+        #print(p, end=": ")
+        for b in range(len(bins)):
+            bin = bins[b]
+            if bin[0]*0.75 <= p <= bin[0]*1.25:
+                #print("matches bin")
+                bins[b][0] = (bin[0] + p) // 2  # avg em
+                bins[b][1] += 1                 # track it
+                matchedbin = True
                 break
+        if not matchedbin:
+            bins.append([p, 1])
+        #print(bins)
+    return bins
+            
+class GenericDecode:
+    def decode_bits(self, pulses, debug=False):
+        if debug: print("length: ", len(pulses))
+
+        # special exception for NEC repeat code!
+        if (len(pulses) == 3) and (8000 <= pulses[0] <= 10000) and (2000 <= pulses[1] <= 3000) and (450 <= pulses[2] <= 700):
+            raise IRNECRepeatException()
+
+        if len(pulses) < 10:
+            raise IRDecodeException("10 pulses minimum")
+
+        # remove any header
+        del pulses[0]
+        if (len(pulses) % 2):
+            del pulses[0]
+
+        if debug: print("new length: ", len(pulses))
+
+        evens = pulses[0::2]
+        odds = pulses[1::2]
+        # bin both halves
+        even_bins = bin(evens)
+        odd_bins = bin(odds)
+        if debug: print("evenbins: ", even_bins, "oddbins:", odd_bins)
+        outliers = [b[0] for b in (even_bins+odd_bins) if b[1] == 1]
+        even_bins = [b for b in even_bins if (b[1] > 1)]
+        odd_bins = [b for b in odd_bins if (b[1] > 1)]
+        if debug: print("evenbins: ", even_bins, "oddbins:", odd_bins, "outliers:", outliers)
+
+        if not even_bins or not odd_bins:
+            raise IRDecodeException("Not enough data")
+        
+        if len(even_bins) == 1:
+            pulses = odds
+            pulse_bins = odd_bins
+        elif len(odd_bins) == 1:
+            pulses = evens
+            pulse_bins = even_bins
+        else:
+            raise IRDecodeException("Both even/odd pulses differ")
+
+        if debug: print("Pulses:", pulses, "& Bins:", pulse_bins)
+        if len(pulse_bins) == 1:
+            raise IRDecodeException("Pulses do not differ")
+        elif len(pulse_bins) > 2:
+            raise IRDecodeException("Only mark & space handled")
+
+        mark = min(pulse_bins[0][0], pulse_bins[1][0])
+        space = max(pulse_bins[0][0], pulse_bins[1][0])
+        if debug: print("Space:",space,"Mark:",mark)
+
+        if outliers:
+            pulses = [p for p in pulses if not (outliers[0]*0.75) <= p <= (outliers[0]*1.25)] # skip outliers
+        # convert marks/spaces to 0 and 1
+        for i in range(len(pulses)):
+            if (space*0.75) <= pulses[i] <= (space*1.25):
+                pulses[i] = False
+            elif (mark*0.75) <= pulses[i] <= (mark*1.25):
+                pulses[i] = True
             else:
-		s = input.popleft()
-                if debug:
-		    print("Skip: ", s)
+                raise IRDecodeException("Pulses outside mark/space")
+        if debug: print(pulses)
 
-        # The header has started but wait for enough mark/space pairs to make up
-        # the bytes we want.
-        while len(input) < len(output) * 8 * 2:
-            pass
-
-        # Now we're past the header. First, figure out the average space
-        mark = input[0]
-        space = input[1]
-        bits = len(output) * 8
-        for i in range(1, bits):
-            mark += input[2 * i]
-            space += input[2 * i + 1]
-        mark /= bits
-        space /= bits
-	if debug:
-	    print("Mark len: %d Space len: %d" % (mark, space))
-        for i in range(len(output)):
-            output[i] = 0
-        for i in range(bits):
+        if debug: print(len(pulses), pulses)
+        output = [0] * ((len(pulses)+7)//8)
+        for i in range(len(pulses)):
             output[i // 8] = output[i // 8] << 1
-            # TODO(tannewt): Make sure this works if the payload is all 0s or 1s.
-            if input[1] > space:
+            if (pulses[i]):
                 output[i // 8] |= 1
-	    b = [input.popleft(), input.popleft()]
-	    if debug:
-		print("Bit #%d: %d %d" %(i, b[0], b[1]))
-		if i % 8 == 7:
-		    print()
+        return output
+
+    def read_pulses(self, input, max_pulse=10000, debug=False):
+        received = []
+        while True:
+            while len(input) < 8:   # not too big (slower) or too small (underruns)!
+                pass
+            while len(input):
+                p = input.popleft()
+                if p > max_pulse:
+                    if not received:
+                        continue
+                    else:
+                        if debug: print(received)
+                        return received
+                received.append(p)
 
 class GenericTransmit:
     def __init__(self, header, one, zero, trail):
