@@ -53,27 +53,28 @@ class IRNECRepeatException(Exception):
             
 class GenericDecode:
     def bin_data(self, pulses):
-            bins = [[pulses[0],0]]
-
-            for i in range(len(pulses)):
-                p = pulses[i]
-                matchedbin = False
-                #print(p, end=": ")
-                for b in range(len(bins)):
-                    bin = bins[b]
-                    if bin[0]*0.75 <= p <= bin[0]*1.25:
-                        #print("matches bin")
-                        bins[b][0] = (bin[0] + p) // 2  # avg em
-                        bins[b][1] += 1                 # track it
-                        matchedbin = True
-                        break
-                if not matchedbin:
-                    bins.append([p, 1])
-                #print(bins)
-            return bins
+        bins = [[pulses[0],0]]
+    
+        for i in range(len(pulses)):
+            p = pulses[i]
+            matchedbin = False
+            #print(p, end=": ")
+            for b in range(len(bins)):
+                bin = bins[b]
+                if bin[0]*0.75 <= p <= bin[0]*1.25:
+                    #print("matches bin")
+                    bins[b][0] = (bin[0] + p) // 2  # avg em
+                    bins[b][1] += 1                 # track it
+                    matchedbin = True
+                    break
+            if not matchedbin:
+                bins.append([p, 1])
+            #print(bins)
+        return bins
 
     def decode_bits(self, pulses, debug=False):
-        print("length: ", len(pulses)) if debug
+        if debug:
+            print("length: ", len(pulses))
 
         # special exception for NEC repeat code!
         if (len(pulses) == 3) and (8000 <= pulses[0] <= 10000) and (2000 <= pulses[1] <= 3000) and (450 <= pulses[2] <= 700):
@@ -86,19 +87,21 @@ class GenericDecode:
         del pulses[0]
         if (len(pulses) % 2):
             del pulses[0]
-        print("new length: ", len(pulses)) if debug
+        if debug:
+            print("new length: ", len(pulses))
 
         evens = pulses[0::2]
         odds = pulses[1::2]
         # bin both halves
         even_bins = self.bin_data(evens)
         odd_bins = self.bin_data(odds)
-        print("evenbins: ", even_bins, "oddbins:", odd_bins) if debug
+        if debug: print("evenbins: ", even_bins, "oddbins:", odd_bins)
 
         outliers = [b[0] for b in (even_bins+odd_bins) if b[1] == 1]
         even_bins = [b for b in even_bins if (b[1] > 1)]
         odd_bins = [b for b in odd_bins if (b[1] > 1)]
-        print("evenbins: ", even_bins, "oddbins:", odd_bins, "outliers:", outliers) if debug
+        if debug:
+            print("evenbins: ", even_bins, "oddbins:", odd_bins, "outliers:", outliers)
 
         if not even_bins or not odd_bins:
             raise IRDecodeException("Not enough data")
@@ -112,7 +115,8 @@ class GenericDecode:
         else:
             raise IRDecodeException("Both even/odd pulses differ")
 
-        print("Pulses:", pulses, "& Bins:", pulse_bins) if debug
+        if debug:
+            print("Pulses:", pulses, "& Bins:", pulse_bins)
         if len(pulse_bins) == 1:
             raise IRDecodeException("Pulses do not differ")
         elif len(pulse_bins) > 2:
@@ -120,7 +124,8 @@ class GenericDecode:
 
         mark = min(pulse_bins[0][0], pulse_bins[1][0])
         space = max(pulse_bins[0][0], pulse_bins[1][0])
-        print("Space:",space,"Mark:",mark) if debug
+        if debug:
+            print("Space:",space,"Mark:",mark)
 
         if outliers:
             pulses = [p for p in pulses if not (outliers[0]*0.75) <= p <= (outliers[0]*1.25)] # skip outliers
@@ -132,7 +137,8 @@ class GenericDecode:
                 pulses[i] = True
             else:
                 raise IRDecodeException("Pulses outside mark/space")
-        print(len(pulses), pulses) if debug
+        if debug:
+            print(len(pulses), pulses)
 
         # convert bits to bytes!
         output = [0] * ((len(pulses)+7)//8)
