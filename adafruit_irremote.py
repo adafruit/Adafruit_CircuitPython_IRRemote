@@ -41,43 +41,53 @@ Demo code for upcoming CircuitPlayground Express:
 * Author(s): Scott Shawcroft
 """
 
+# Pretend self matter because we may add object level config later.
+# pylint: disable=no-self-use
+
 import array
 
 class IRDecodeException(Exception):
+    """Generic decode exception"""
     pass
 
 class IRNECRepeatException(Exception):
+    """Exception when a NEC repeat is decoded"""
     pass
 
 
-            
 class GenericDecode:
+    """Generic decoding of infrared signals"""
     def bin_data(self, pulses):
-        bins = [[pulses[0],0]]
-    
-        for i in range(len(pulses)):
-            p = pulses[i]
+        """Compute bins of pulse lengths where pulses are +-25% of the average.
+
+           :param list pulses: Input pulse lengths
+           """
+        bins = [[pulses[0], 0]]
+
+        for _, pulse in enumerate(pulses):
             matchedbin = False
-            #print(p, end=": ")
-            for b in range(len(bins)):
-                bin = bins[b]
-                if bin[0]*0.75 <= p <= bin[0]*1.25:
+            #print(pulse, end=": ")
+            for b, pulse_bin in enumerate(bins):
+                if pulse_bin[0]*0.75 <= pulse <= pulse_bin[0]*1.25:
                     #print("matches bin")
-                    bins[b][0] = (bin[0] + p) // 2  # avg em
+                    bins[b][0] = (pulse_bin[0] + pulse) // 2  # avg em
                     bins[b][1] += 1                 # track it
                     matchedbin = True
                     break
             if not matchedbin:
-                bins.append([p, 1])
+                bins.append([pulse, 1])
             #print(bins)
         return bins
 
     def decode_bits(self, pulses, debug=False):
+        """Decode the pulses into bits."""
+        # pylint: disable=too-many-branches,too-many-statements
         if debug:
             print("length: ", len(pulses))
 
         # special exception for NEC repeat code!
-        if (len(pulses) == 3) and (8000 <= pulses[0] <= 10000) and (2000 <= pulses[1] <= 3000) and (450 <= pulses[2] <= 700):
+        if ((len(pulses) == 3) and (8000 <= pulses[0] <= 10000) and
+                (2000 <= pulses[1] <= 3000) and (450 <= pulses[2] <= 700)):
             raise IRNECRepeatException()
 
         if len(pulses) < 10:
@@ -85,7 +95,7 @@ class GenericDecode:
 
         # remove any header
         del pulses[0]
-        if (len(pulses) % 2):
+        if len(pulses) % 2 == 1:
             del pulses[0]
         if debug:
             print("new length: ", len(pulses))
@@ -95,17 +105,18 @@ class GenericDecode:
         # bin both halves
         even_bins = self.bin_data(evens)
         odd_bins = self.bin_data(odds)
-        if debug: print("evenbins: ", even_bins, "oddbins:", odd_bins)
+        if debug:
+            print("evenbins: ", even_bins, "oddbins:", odd_bins)
 
-        outliers = [b[0] for b in (even_bins+odd_bins) if b[1] == 1]
-        even_bins = [b for b in even_bins if (b[1] > 1)]
-        odd_bins = [b for b in odd_bins if (b[1] > 1)]
+        outliers = [b[0] for b in (even_bins + odd_bins) if b[1] == 1]
+        even_bins = [b for b in even_bins if b[1] > 1]
+        odd_bins = [b for b in odd_bins if b[1] > 1]
         if debug:
             print("evenbins: ", even_bins, "oddbins:", odd_bins, "outliers:", outliers)
 
         if not even_bins or not odd_bins:
             raise IRDecodeException("Not enough data")
-        
+
         if len(even_bins) == 1:
             pulses = odds
             pulse_bins = odd_bins
@@ -125,15 +136,17 @@ class GenericDecode:
         mark = min(pulse_bins[0][0], pulse_bins[1][0])
         space = max(pulse_bins[0][0], pulse_bins[1][0])
         if debug:
-            print("Space:",space,"Mark:",mark)
+            print("Space:", space, "Mark:", mark)
 
         if outliers:
-            pulses = [p for p in pulses if not (outliers[0]*0.75) <= p <= (outliers[0]*1.25)] # skip outliers
+            # skip outliers
+            pulses = [p for p in pulses if not
+                      (outliers[0]*0.75) <= p <= (outliers[0]*1.25)]
         # convert marks/spaces to 0 and 1
-        for i in range(len(pulses)):
-            if (space*0.75) <= pulses[i] <= (space*1.25):
+        for i, pulse_length in enumerate(pulses):
+            if (space*0.75) <= pulse_length <= (space*1.25):
                 pulses[i] = False
-            elif (mark*0.75) <= pulses[i] <= (mark*1.25):
+            elif (mark*0.75) <= pulse_length <= (mark*1.25):
                 pulses[i] = True
             else:
                 raise IRDecodeException("Pulses outside mark/space")
@@ -142,27 +155,33 @@ class GenericDecode:
 
         # convert bits to bytes!
         output = [0] * ((len(pulses)+7)//8)
-        for i in range(len(pulses)):
+        for i, pulse_length in enumerate(pulses):
             output[i // 8] = output[i // 8] << 1
-            if (pulses[i]):
+            if pulse_length:
                 output[i // 8] |= 1
         return output
 
-    def read_pulses(self, input, max_pulse=10000):
+    def read_pulses(self, input_pulses, max_pulse=10000):
+        """Read out a burst of pulses until a pulse is longer than ``max_pulse``.
+
+           :param ~pulseio.PulseIn input_pulses: Object to read pulses from
+           :param int max_pulse: Pulse duration to end a burst
+           """
         received = []
         while True:
-            while len(input) < 8:   # not too big (slower) or too small (underruns)!
+            while len(input_pulses) < 8:   # not too big (slower) or too small (underruns)!
                 pass
-            while len(input):
-                p = input.popleft()
-                if p > max_pulse:
+            while input_pulses:
+                pulse = input_pulses.popleft()
+                if pulse > max_pulse:
                     if not received:
                         continue
                     else:
                         return received
-                received.append(p)
+                received.append(pulse)
 
 class GenericTransmit:
+    """Generic infrared transmit class that handles encoding."""
     def __init__(self, header, one, zero, trail):
         self.header = header
         self.one = one
@@ -170,14 +189,19 @@ class GenericTransmit:
         self.trail = trail
 
     def transmit(self, pulseout, data):
+        """Transmit the ``data`` using the ``pulseout``.
+
+           :param pulseio.PulseOut pulseout: PulseOut to transmit on
+           :param bytearray data: Data to transmit
+           """
         durations = array.array('H', [0] * (2 + len(data) * 8 * 2 + 1))
         durations[0] = self.header[0]
         durations[1] = self.header[1]
         durations[-1] = self.trail
         out = 2
-        for byte in range(len(data)):
+        for byte_index, _ in enumerate(data):
             for i in range(7, -1, -1):
-                if (data[byte] & 1 << i) > 0:
+                if (data[byte_index] & 1 << i) > 0:
                     durations[out] = self.one[0]
                     durations[out + 1] = self.one[1]
                 else:
