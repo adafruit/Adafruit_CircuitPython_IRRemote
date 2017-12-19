@@ -179,6 +179,7 @@ class GenericDecode:
                     else:
                         return received
                 received.append(pulse)
+        return received
 
 class GenericTransmit:
     """Generic infrared transmit class that handles encoding."""
