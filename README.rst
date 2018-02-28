@@ -14,7 +14,7 @@ CircuitPython driver for use with IR Receivers.
 
 Examples of products to use this library with:
 
-* `CircuitPlayground Express <https://www.adafruit.com/product/3333>`_
+* `Circuit Playground Express <https://www.adafruit.com/product/3333>`_
 
 * `IR Receiver Sensor <https://www.adafruit.com/product/157>`_
 
@@ -33,7 +33,7 @@ Usage Example
 
 .. code-block:: python
 
-    # CircuitPlayground Express Demo Code
+    # Circuit Playground Express Demo Code
     # Adjust the pulseio 'board.PIN' if using something else
     import pulseio
     import board

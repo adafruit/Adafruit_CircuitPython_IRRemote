@@ -26,7 +26,7 @@ Table of Contents
 .. toctree::
     :caption: Related Products
 
-    CircuitPlayground Express <https://www.adafruit.com/product/3333>
+    Circuit Playground Express <https://www.adafruit.com/product/3333>
     IR Receiver Sensor <https://www.adafruit.com/product/157>
 
 .. toctree::

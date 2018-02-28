@@ -23,7 +23,7 @@
 `adafruit_irremote`
 ====================================================
 
-Demo code for CircuitPlayground Express:
+Demo code for Circuit Playground Express:
 
 .. code-block: python
 

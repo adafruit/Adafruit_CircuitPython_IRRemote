@@ -1,3 +1,5 @@
+# Circuit Playground Express Demo Code
+# Adjust the pulseio 'board.PIN' if using something else
 import pulseio
 import board
 import adafruit_irremote
