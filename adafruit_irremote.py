@@ -23,7 +23,7 @@
 `adafruit_irremote`
 ====================================================
 
-Demo code for upcoming CircuitPlayground Express:
+Demo code for Circuit Playground Express:
 
 .. code-block: python
 
@@ -39,6 +39,21 @@ Demo code for upcoming CircuitPlayground Express:
             print(code)
 
 * Author(s): Scott Shawcroft
+
+Implementation Notes
+--------------------
+
+**Hardware:**
+
+* `CircuitPlayground Express <https://www.adafruit.com/product/3333>`_
+
+* `IR Receiver Sensor <https://www.adafruit.com/product/157>`_
+
+**Software and Dependencies:**
+
+* Adafruit CircuitPython firmware for the ESP8622 and M0-based boards:
+  https://github.com/adafruit/circuitpython/releases
+
 """
 
 # Pretend self matter because we may add object level config later.
