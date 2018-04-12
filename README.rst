@@ -42,19 +42,31 @@ Usage Example
     import pulseio
     import board
     import adafruit_irremote
+    pulsein = pulseio.PulseIn(board.REMOTEIN, maxlen=120, idle_state=True)
+    decoder = adafruit_irremote.GenericDecode()
 
-    with pulseio.PulseIn(board.REMOTEIN, maxlen=120, idle_state=True) as p:
-        d = adafruit_irremote.GenericDecode()
-        code = bytearray(4)
-        while True:
-            d.decode(p, code)
-            print(code)
+    # size must match what you are decoding! for NEC use 4
+    received_code = bytearray(4)
+
+    while True:
+        pulses = decoder.read_pulses(pulsein)
+        print("Heard", len(pulses), "Pulses:", pulses)
+        try:
+            code = decoder.decode_bits(pulses, debug=False)
+            print("Decoded:", code)
+        except adafruit_irremote.IRNECRepeatException:  # unusual short code!
+            print("NEC repeat!")
+        except adafruit_irremote.IRDecodeException as e:     # failed to decode
+            print("Failed to decode: ", e.args)
+
+        print("----------------------------")
+
 
 Contributing
 ============
 
 Contributions are welcome! Please read our `Code of Conduct
-<https://github.com/adafruit/Adafruit_CircuitPython_irremote/blob/master/CODE_OF_CONDUCT.md>`_
+<https://github.com/adafruit/Adafruit_CircuitPython_IRRemote/blob/master/CODE_OF_CONDUCT.md>`_
 before contributing to help this project stay welcoming.
 
 Building locally
