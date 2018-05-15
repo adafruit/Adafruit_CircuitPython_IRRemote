@@ -189,16 +189,20 @@ class GenericDecode:
                 output[i // 8] |= 1
         return output
 
-    def read_pulses(self, input_pulses, max_pulse=10000):
+    def read_pulses(self, input_pulses, max_pulse=10000, blocking=True):
         """Read out a burst of pulses until a pulse is longer than ``max_pulse``.
 
            :param ~pulseio.PulseIn input_pulses: Object to read pulses from
            :param int max_pulse: Pulse duration to end a burst
+           :param bool blocking: If True, will block until pulses found.
+               If False, will return None if no pulses.
+               Defaults to True for backwards compatibility
            """
         received = []
         while True:
             while len(input_pulses) < 8:   # not too big (slower) or too small (underruns)!
-                pass
+                if not blocking:
+                    return None
             while input_pulses:
                 pulse = input_pulses.popleft()
                 if pulse > max_pulse:
