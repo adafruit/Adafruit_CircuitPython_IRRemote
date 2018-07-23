@@ -74,6 +74,9 @@ Implementation Notes
 
 import array
 
+__version__ = "0.0.0-auto.0"
+__repo__ = "https://github.com/adafruit/Adafruit_CircuitPython_IRRemote.git"
+
 class IRDecodeException(Exception):
     """Generic decode exception"""
     pass
@@ -198,11 +201,12 @@ class GenericDecode:
                If False, will return None if no pulses.
                Defaults to True for backwards compatibility
            """
+        if not input_pulses and not blocking:
+            return None
         received = []
         while True:
-            while len(input_pulses) < 8:   # not too big (slower) or too small (underruns)!
-                if not blocking:
-                    return None
+            while not input_pulses:
+                pass
             while input_pulses:
                 pulse = input_pulses.popleft()
                 if pulse > max_pulse:
