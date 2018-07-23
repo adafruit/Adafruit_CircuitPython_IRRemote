@@ -201,11 +201,11 @@ class GenericDecode:
                If False, will return None if no pulses.
                Defaults to True for backwards compatibility
            """
-        if len(input_pulses) == 0 and not blocking:
+        if not input_pulses and not blocking:
             return None
         received = []
         while True:
-            while len(input_pulses) == 0:
+            while not input_pulses:
                 pass
             while input_pulses:
                 pulse = input_pulses.popleft()
