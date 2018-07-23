@@ -242,5 +242,5 @@ class GenericTransmit:
                     durations[out + 1] = self.zero[1]
                 out += 2
 
-        print(durations)
+        # print(durations)
         pulseout.send(durations)
