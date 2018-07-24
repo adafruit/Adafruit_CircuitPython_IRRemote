@@ -1,9 +1,14 @@
 """IR transmit example using Circuit Playground Express"""
 import time
-from adafruit_circuitplayground.express import cpx
 import adafruit_irremote
 import pulseio
 import board
+import digitalio
+
+# Create a button object to trigger IR transmit
+button = digitalio.DigitalInOut(board.D4)
+button.direction = digitalio.Direction.INPUT
+button.pull = digitalio.Pull.DOWN
 
 # Create a 'pulseio' output, to send infrared signals on the IR transmitter @ 38KHz
 pwm = pulseio.PWMOut(board.IR_TX, frequency=38000, duty_cycle=2 ** 15)
@@ -13,16 +18,6 @@ encoder = adafruit_irremote.GenericTransmit(header=[9500, 4500], one=[550, 550],
                                             zero=[550, 1700], trail=0)
 
 while True:
-    if cpx.button_a:
-        print("Button A pressed!")
-        cpx.red_led = True
+    if button.value:
         encoder.transmit(pulseout, [255, 2, 255, 0])
-        cpx.red_led = False
-        # wait so the receiver can get the full message
-        time.sleep(0.2)
-    if cpx.button_b:
-        print("Button B pressed!")
-        cpx.red_led = True
-        encoder.transmit(pulseout, [255, 2, 191, 64])
-        cpx.red_led = False
         time.sleep(0.2)
