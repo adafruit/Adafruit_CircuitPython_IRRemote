@@ -8,6 +8,7 @@ import digitalio
 # Create a button object to trigger IR transmit
 button = digitalio.DigitalInOut(board.D4)
 button.direction = digitalio.Direction.INPUT
+# This is for CPX. For an external button
 button.pull = digitalio.Pull.DOWN
 
 # Create a 'pulseio' output, to send infrared signals on the IR transmitter @ 38KHz
@@ -19,5 +20,6 @@ encoder = adafruit_irremote.GenericTransmit(header=[9500, 4500], one=[550, 550],
 
 while True:
     if button.value:
+        print("IR signal sent!")
         encoder.transmit(pulseout, [255, 2, 255, 0])
         time.sleep(0.2)
