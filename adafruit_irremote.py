@@ -205,7 +205,7 @@ class GenericDecode:
         recent_count = 0
         pruning = False
         while True:
-            try:
+            while input_pulses:
                 pulse = input_pulses.popleft()
                 recent_count += 1
                 if pulse > max_pulse:
@@ -216,11 +216,11 @@ class GenericDecode:
                     if received is None:
                         received = []
                     received.append(pulse)
-            except IndexError:
-                if recent_count == 0:
-                    return received
-                recent_count = 0
-                time.sleep(pulse_window)
+
+            if recent_count == 0:
+                return received
+            recent_count = 0
+            time.sleep(pulse_window)
 
     # pylint: disable-msg=too-many-arguments
     def read_pulses(self, input_pulses, max_pulse=10000, blocking=True,
