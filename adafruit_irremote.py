@@ -193,7 +193,7 @@ class GenericDecode:
                 output[i // 8] |= 1
         return output
 
-    def read_pulses_non_blocking(self, input_pulses, max_pulse=10000, pulse_window=0.10):
+    def _read_pulses_non_blocking(self, input_pulses, max_pulse=10000, pulse_window=0.10):
         """Read out a burst of pulses without blocking until pulses stop for a specified
             period (pulse_window), pruning pulses after a pulse longer than ``max_pulse``.
 
@@ -237,7 +237,7 @@ class GenericDecode:
             :param float blocking_delay: delay between pulse checks when blocking
            """
         while True:
-            pulses = self.read_pulses_non_blocking(input_pulses, max_pulse, pulse_window)
+            pulses = self._read_pulses_non_blocking(input_pulses, max_pulse, pulse_window)
             if blocking and pulses is None:
                 time.sleep(blocking_delay)
                 continue
