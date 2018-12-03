@@ -222,8 +222,7 @@ class GenericDecode:
             recent_count = 0
             time.sleep(pulse_window)
 
-    # pylint: disable-msg=too-many-arguments
-    def read_pulses(self, input_pulses, max_pulse=10000, blocking=True,
+    def read_pulses(self, input_pulses, *, max_pulse=10000, blocking=True,
                     pulse_window=0.10, blocking_delay=0.10):
         """Read out a burst of pulses until pulses stop for a specified
             period (pulse_window), pruning pulses after a pulse longer than ``max_pulse``.
@@ -242,7 +241,6 @@ class GenericDecode:
                 time.sleep(blocking_delay)
                 continue
             return pulses
-    # pylint: enable-msg=too-many-arguments
 
 class GenericTransmit:
     """Generic infrared transmit class that handles encoding."""
