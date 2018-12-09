@@ -73,6 +73,7 @@ Implementation Notes
 # pylint: disable=no-self-use
 
 import array
+import time
 
 __version__ = "0.0.0-auto.0"
 __repo__ = "https://github.com/adafruit/Adafruit_CircuitPython_IRRemote.git"
@@ -192,30 +193,54 @@ class GenericDecode:
                 output[i // 8] |= 1
         return output
 
-    def read_pulses(self, input_pulses, max_pulse=10000, blocking=True):
-        """Read out a burst of pulses until a pulse is longer than ``max_pulse``.
+    def _read_pulses_non_blocking(self, input_pulses, max_pulse=10000, pulse_window=0.10):
+        """Read out a burst of pulses without blocking until pulses stop for a specified
+            period (pulse_window), pruning pulses after a pulse longer than ``max_pulse``.
 
-           :param ~pulseio.PulseIn input_pulses: Object to read pulses from
-           :param int max_pulse: Pulse duration to end a burst
-           :param bool blocking: If True, will block until pulses found.
-               If False, will return None if no pulses.
-               Defaults to True for backwards compatibility
+            :param ~pulseio.PulseIn input_pulses: Object to read pulses from
+            :param int max_pulse: Pulse duration to end a burst
+            :param float pulse_window: pulses are collected for this period of time
            """
-        if not input_pulses and not blocking:
-            return None
-        received = []
+        received = None
+        recent_count = 0
+        pruning = False
         while True:
-            while not input_pulses:
-                pass
             while input_pulses:
                 pulse = input_pulses.popleft()
+                recent_count += 1
                 if pulse > max_pulse:
-                    if not received:
+                    if received is None:
                         continue
-                    else:
-                        return received
-                received.append(pulse)
-        return received
+                    pruning = True
+                if not pruning:
+                    if received is None:
+                        received = []
+                    received.append(pulse)
+
+            if recent_count == 0:
+                return received
+            recent_count = 0
+            time.sleep(pulse_window)
+
+    def read_pulses(self, input_pulses, *, max_pulse=10000, blocking=True,
+                    pulse_window=0.10, blocking_delay=0.10):
+        """Read out a burst of pulses until pulses stop for a specified
+            period (pulse_window), pruning pulses after a pulse longer than ``max_pulse``.
+
+            :param ~pulseio.PulseIn input_pulses: Object to read pulses from
+            :param int max_pulse: Pulse duration to end a burst
+            :param bool blocking: If True, will block until pulses found.
+                If False, will return None if no pulses.
+                Defaults to True for backwards compatibility
+            :param float pulse_window: pulses are collected for this period of time
+            :param float blocking_delay: delay between pulse checks when blocking
+           """
+        while True:
+            pulses = self._read_pulses_non_blocking(input_pulses, max_pulse, pulse_window)
+            if blocking and pulses is None:
+                time.sleep(blocking_delay)
+                continue
+            return pulses
 
 class GenericTransmit:
     """Generic infrared transmit class that handles encoding."""
