@@ -1,9 +1,10 @@
 """IR transmit example using Circuit Playground Express"""
+#pylint: disable-msg=no-member
 import time
-import adafruit_irremote
 import pulseio
 import board
 import digitalio
+import adafruit_irremote
 
 # Create a button object to trigger IR transmit
 button = digitalio.DigitalInOut(board.D4)
