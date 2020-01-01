@@ -10,8 +10,8 @@ Introduction
     :target: https://discord.gg/nBQh6qu
     :alt: Discord
 
-.. image:: https://travis-ci.com/adafruit/Adafruit_CircuitPython_IRRemote.svg?branch=master
-    :target: https://travis-ci.com/adafruit/Adafruit_CircuitPython_IRRemote
+.. image:: https://github.com/adafruit/Adafruit_CircuitPython_IRRemote/workflows/Build%20CI/badge.svg
+    :target: https://github.com/adafruit/Adafruit_CircuitPython_IRRemote/actions/
     :alt: Build Status
 
 CircuitPython driver for use with IR Receivers.
