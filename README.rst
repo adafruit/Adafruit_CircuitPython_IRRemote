@@ -77,7 +77,7 @@ Usage Example
         pulses = decoder.read_pulses(pulsein)
         print("Heard", len(pulses), "Pulses:", pulses)
         try:
-            code = decoder.decode_bits(pulses, debug=False)
+            code = decoder.decode_bits(pulses)
             print("Decoded:", code)
         except adafruit_irremote.IRNECRepeatException:  # unusual short code!
             print("NEC repeat!")
