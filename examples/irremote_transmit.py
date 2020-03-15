@@ -1,5 +1,5 @@
 """IR transmit example using Circuit Playground Express"""
-#pylint: disable-msg=no-member
+# pylint: disable-msg=no-member
 import time
 import pulseio
 import board
@@ -15,8 +15,9 @@ button.pull = digitalio.Pull.DOWN
 pwm = pulseio.PWMOut(board.IR_TX, frequency=38000, duty_cycle=2 ** 15)
 pulseout = pulseio.PulseOut(pwm)
 # Create an encoder that will take numbers and turn them into NEC IR pulses
-encoder = adafruit_irremote.GenericTransmit(header=[9500, 4500], one=[550, 550],
-                                            zero=[550, 1700], trail=0)
+encoder = adafruit_irremote.GenericTransmit(
+    header=[9500, 4500], one=[550, 550], zero=[550, 1700], trail=0
+)
 
 while True:
     if button.value:
