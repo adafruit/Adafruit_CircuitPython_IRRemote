@@ -127,13 +127,15 @@ class GenericDecode:
         if len(pulses) < 10:
             raise IRDecodeException("10 pulses minimum")
 
-        # remove any header
-        del pulses[0]
-        if len(pulses) % 2 == 1:
-            del pulses[0]
+        # Ignore any header (evens start at 1), and any trailer.
+        if len(pulses) % 2 == 0:
+            pulses_end = -1
+        else:
+            pulses_end = None
 
-        evens = pulses[0::2]
-        odds = pulses[1::2]
+        evens = pulses[1:pulses_end:2]
+        odds = pulses[2:pulses_end:2]
+
         # bin both halves
         even_bins = self.bin_data(evens)
         odd_bins = self.bin_data(odds)
