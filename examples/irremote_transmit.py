@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2021 ladyada for Adafruit Industries
+# SPDX-License-Identifier: MIT
+
 """IR transmit example using Circuit Playground Express"""
 # pylint: disable-msg=no-member
 import time

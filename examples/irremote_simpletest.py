@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2021 ladyada for Adafruit Industries
+# SPDX-License-Identifier: MIT
+
 # Circuit Playground Express Demo Code
 # Adjust the pulseio 'board.PIN' if using something else
 import pulseio

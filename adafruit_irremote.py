@@ -1,24 +1,7 @@
-# The MIT License (MIT)
+# SPDX-FileCopyrightText: 2017 Scott Shawcroft for Adafruit Industries
 #
-# Copyright (c) 2017 Scott Shawcroft for Adafruit Industries
-#
-# Permission is hereby granted, free of charge, to any person obtaining a copy
-# of this software and associated documentation files (the "Software"), to deal
-# in the Software without restriction, including without limitation the rights
-# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-# copies of the Software, and to permit persons to whom the Software is
-# furnished to do so, subject to the following conditions:
-#
-# The above copyright notice and this permission notice shall be included in
-# all copies or substantial portions of the Software.
-#
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-# THE SOFTWARE.
+# SPDX-License-Identifier: MIT
+
 """
 `adafruit_irremote`
 ====================================================
@@ -92,8 +75,8 @@ class GenericDecode:
     def bin_data(self, pulses):
         """Compute bins of pulse lengths where pulses are +-25% of the average.
 
-           :param list pulses: Input pulse lengths
-           """
+        :param list pulses: Input pulse lengths
+        """
         bins = [[pulses[0], 0]]
 
         for _, pulse in enumerate(pulses):
@@ -192,12 +175,12 @@ class GenericDecode:
         self, input_pulses, max_pulse=10000, pulse_window=0.10
     ):
         """Read out a burst of pulses without blocking until pulses stop for a specified
-            period (pulse_window), pruning pulses after a pulse longer than ``max_pulse``.
+        period (pulse_window), pruning pulses after a pulse longer than ``max_pulse``.
 
-            :param ~pulseio.PulseIn input_pulses: Object to read pulses from
-            :param int max_pulse: Pulse duration to end a burst
-            :param float pulse_window: pulses are collected for this period of time
-           """
+        :param ~pulseio.PulseIn input_pulses: Object to read pulses from
+        :param int max_pulse: Pulse duration to end a burst
+        :param float pulse_window: pulses are collected for this period of time
+        """
         received = None
         recent_count = 0
         pruning = False
@@ -229,16 +212,16 @@ class GenericDecode:
         blocking_delay=0.10
     ):
         """Read out a burst of pulses until pulses stop for a specified
-            period (pulse_window), pruning pulses after a pulse longer than ``max_pulse``.
+        period (pulse_window), pruning pulses after a pulse longer than ``max_pulse``.
 
-            :param ~pulseio.PulseIn input_pulses: Object to read pulses from
-            :param int max_pulse: Pulse duration to end a burst
-            :param bool blocking: If True, will block until pulses found.
-                If False, will return None if no pulses.
-                Defaults to True for backwards compatibility
-            :param float pulse_window: pulses are collected for this period of time
-            :param float blocking_delay: delay between pulse checks when blocking
-           """
+        :param ~pulseio.PulseIn input_pulses: Object to read pulses from
+        :param int max_pulse: Pulse duration to end a burst
+        :param bool blocking: If True, will block until pulses found.
+            If False, will return None if no pulses.
+            Defaults to True for backwards compatibility
+        :param float pulse_window: pulses are collected for this period of time
+        :param float blocking_delay: delay between pulse checks when blocking
+        """
         while True:
             pulses = self._read_pulses_non_blocking(
                 input_pulses, max_pulse, pulse_window
@@ -261,9 +244,9 @@ class GenericTransmit:
     def transmit(self, pulseout, data):
         """Transmit the ``data`` using the ``pulseout``.
 
-           :param pulseio.PulseOut pulseout: PulseOut to transmit on
-           :param bytearray data: Data to transmit
-           """
+        :param pulseio.PulseOut pulseout: PulseOut to transmit on
+        :param bytearray data: Data to transmit
+        """
         durations = array.array("H", [0] * (2 + len(data) * 8 * 2 + 1))
         durations[0] = self.header[0]
         durations[1] = self.header[1]
