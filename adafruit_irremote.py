@@ -93,6 +93,12 @@ def decode_bits(pulses):
     """Decode the pulses into bits."""
     # pylint: disable=too-many-branches,too-many-statements
 
+    # TODO The name pulses is redefined several times below, so we'll stash the
+    # original in a separate variable for now. It might be worth refactoring to
+    # avoid redefining pulses, for the sake of readability.
+    input_pulses = pulses
+    pulses = list(pulses)  # Copy to avoid mutating input.
+
     # special exception for NEC repeat code!
     if (
         (len(pulses) == 3)
@@ -100,10 +106,10 @@ def decode_bits(pulses):
         and (2000 <= pulses[1] <= 3000)
         and (450 <= pulses[2] <= 700)
     ):
-        raise IRNECRepeatException()
+        return NECRepeatIRMessage(input_pulses)
 
     if len(pulses) < 10:
-        raise IRDecodeException("10 pulses minimum")
+        return UnparseableIRMessage(input_pulses, reason="Too short")
 
     # Ignore any header (evens start at 1), and any trailer.
     if len(pulses) % 2 == 0:
@@ -123,7 +129,7 @@ def decode_bits(pulses):
     odd_bins = [b for b in odd_bins if b[1] > 1]
 
     if not even_bins or not odd_bins:
-        raise IRDecodeException("Not enough data")
+        return UnparseableIRMessage(input_pulses, reason="Not enough data")
 
     if len(even_bins) == 1:
         pulses = odds
@@ -132,12 +138,12 @@ def decode_bits(pulses):
         pulses = evens
         pulse_bins = even_bins
     else:
-        raise IRDecodeException("Both even/odd pulses differ")
+        return UnparseableIRMessage(input_pulses, reason="Both even/odd pulses differ")
 
     if len(pulse_bins) == 1:
-        raise IRDecodeException("Pulses do not differ")
+        return UnparseableIRMessage(input_pulses, reason="Pulses do not differ")
     if len(pulse_bins) > 2:
-        raise IRDecodeException("Only mark & space handled")
+        return UnparseableIRMessage(input_pulses, reason="Only mark & space handled")
 
     mark = min(pulse_bins[0][0], pulse_bins[1][0])
     space = max(pulse_bins[0][0], pulse_bins[1][0])
@@ -154,7 +160,9 @@ def decode_bits(pulses):
         elif (mark * 0.75) <= pulse_length <= (mark * 1.25):
             pulses[i] = True
         else:
-            raise IRDecodeException("Pulses outside mark/space")
+            return UnparseableIRMessage(
+                input_pulses, reason="Pulses outside mark/space"
+            )
 
     # convert bits to bytes!
     output = [0] * ((len(pulses) + 7) // 8)
@@ -162,7 +170,102 @@ def decode_bits(pulses):
         output[i // 8] = output[i // 8] << 1
         if pulse_length:
             output[i // 8] |= 1
-    return output
+    return IRMessage(input_pulses, code=output)
+
+
+class BaseIRMessage:
+    "Contains the pulses that were parsed as one message."
+
+    def __init__(self, pulses):
+        # Stash an immutable copy of pulses.
+        self.pulses = tuple(pulses)
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}({self.pulses})"
+
+
+class IRMessage(BaseIRMessage):
+    """
+    Message interpreted as bytes.
+
+    >>> m.code  # the output of interest (the parsed bytes)
+    >>> m.pulses  # the original pulses
+    """
+
+    def __init__(self, pulses, *, code):
+        super().__init__(pulses)
+        self.code = code
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}" f"(pulses={self.pulses}, code={self.code})"
+
+
+class UnparseableIRMessage(BaseIRMessage):
+    "Message that could not be interpreted."
+
+    def __init__(self, pulses, *, reason):
+        super().__init__(pulses)
+        self.reason = reason
+
+    def __repr__(self):
+        return (
+            f"{self.__class__.__name__}" f"(pulses={self.pulses}, reason={self.reason})"
+        )
+
+
+class NECRepeatIRMessage(BaseIRMessage):
+    "Message interpreted as an NEC repeat code."
+    pass
+
+
+class NonblockingGenericDecode:
+    """
+    Decode pulses into bytes in a non-blocking fashion.
+
+    :param ~pulseio.PulseIn input_pulses: Object to read pulses from
+    :param int max_pulse: Pulse duration to end a burst.  Units are
+    microseconds.
+
+    >>> pulses = PulseIn(...)
+    >>> decoder = NonblockingGenericDecoder(pulses)
+    >>> for message in decoder.read():
+    ...     if isinstace(message, IRMessage):
+    ...         message.code  # TA-DA! Do something with this in your application.
+    ...     else:
+    ...         # message is either NECRepeatIRMessage or
+    ...         # UnparseableIRMessage. You may decide to ignore it, raise
+    ...         # an error, or log the issue to a file. If you raise or log,
+    ...         # it may be helpful to include message.pulses in the error message.
+    ...         ...
+    """
+
+    def __init__(self, pulses, max_pulse=10_000):
+        self.pulses = pulses  # PulseIn
+        self.max_pulse = max_pulse
+        self._unparsed_pulses = []  # internal buffer of partial messages
+
+    def read(self):
+        """
+        Consume all pulses from PulseIn. Yield decoded messages, if any.
+
+        If a partial message is received, this does not block to wait for the
+        rest. It stashes the partial message, to be continued the next time it
+        is called.
+        """
+        # Consume from PulseIn.
+        while self.pulses:
+            pulse = self.pulses.popleft()
+            self._unparsed_pulses.append(pulse)
+            if pulse > self.max_pulse:
+                # End of message! Decode it and yield a BaseIRMessage.
+                yield decode_bits(self._unparsed_pulses)
+                self._unparsed_pulses.clear()
+                # TODO Do we need to consume and throw away more pulses here?
+                # I'm unclear about the role that "pruning" plays in the
+                # original implementation in GenericDecode._read_pulses_non_blocking.
+        # When we reach here, we have consumed everything from PulseIn.
+        # If there are some pulses in self._unparsed_pulses, they represent
+        # partial messages. We'll finish them next time read() is called.
 
 
 class GenericDecode:
@@ -174,7 +277,11 @@ class GenericDecode:
 
     def decode_bits(self, pulses):
         "Wraps the top-level function decode_bits for backward-compatibility."
-        return decode_bits(pulses)
+        result = decode_bits(pulses)
+        if isinstance(result, NECRepeatIRMessage):
+            raise IRNECRepeatException()
+        elif isinstance(result, UnparseableIRMessage):
+            raise IRDecodeException("10 pulses minimum")
 
     def _read_pulses_non_blocking(
         self, input_pulses, max_pulse=10000, pulse_window=0.10
@@ -214,7 +321,7 @@ class GenericDecode:
         max_pulse=10000,
         blocking=True,
         pulse_window=0.10,
-        blocking_delay=0.10
+        blocking_delay=0.10,
     ):
         """Read out a burst of pulses until pulses stop for a specified
         period (pulse_window), pruning pulses after a pulse longer than ``max_pulse``.
