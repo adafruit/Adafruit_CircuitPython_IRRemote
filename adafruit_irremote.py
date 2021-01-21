@@ -51,9 +51,6 @@ Implementation Notes
 
 """
 
-# Pretend self matter because we may add object level config later.
-# pylint: disable=no-self-use
-
 import array
 import time
 
@@ -69,107 +66,115 @@ class IRNECRepeatException(Exception):
     """Exception when a NEC repeat is decoded"""
 
 
+def bin_data(pulses):
+    """Compute bins of pulse lengths where pulses are +-25% of the average.
+
+    :param list pulses: Input pulse lengths
+    """
+    bins = [[pulses[0], 0]]
+
+    for _, pulse in enumerate(pulses):
+        matchedbin = False
+        # print(pulse, end=": ")
+        for b, pulse_bin in enumerate(bins):
+            if pulse_bin[0] * 0.75 <= pulse <= pulse_bin[0] * 1.25:
+                # print("matches bin")
+                bins[b][0] = (pulse_bin[0] + pulse) // 2  # avg em
+                bins[b][1] += 1  # track it
+                matchedbin = True
+                break
+        if not matchedbin:
+            bins.append([pulse, 1])
+        # print(bins)
+    return bins
+
+
+def decode_bits(pulses):
+    """Decode the pulses into bits."""
+    # pylint: disable=too-many-branches,too-many-statements
+
+    # special exception for NEC repeat code!
+    if (
+        (len(pulses) == 3)
+        and (8000 <= pulses[0] <= 10000)
+        and (2000 <= pulses[1] <= 3000)
+        and (450 <= pulses[2] <= 700)
+    ):
+        raise IRNECRepeatException()
+
+    if len(pulses) < 10:
+        raise IRDecodeException("10 pulses minimum")
+
+    # Ignore any header (evens start at 1), and any trailer.
+    if len(pulses) % 2 == 0:
+        pulses_end = -1
+    else:
+        pulses_end = None
+
+    evens = pulses[1:pulses_end:2]
+    odds = pulses[2:pulses_end:2]
+
+    # bin both halves
+    even_bins = bin_data(evens)
+    odd_bins = bin_data(odds)
+
+    outliers = [b[0] for b in (even_bins + odd_bins) if b[1] == 1]
+    even_bins = [b for b in even_bins if b[1] > 1]
+    odd_bins = [b for b in odd_bins if b[1] > 1]
+
+    if not even_bins or not odd_bins:
+        raise IRDecodeException("Not enough data")
+
+    if len(even_bins) == 1:
+        pulses = odds
+        pulse_bins = odd_bins
+    elif len(odd_bins) == 1:
+        pulses = evens
+        pulse_bins = even_bins
+    else:
+        raise IRDecodeException("Both even/odd pulses differ")
+
+    if len(pulse_bins) == 1:
+        raise IRDecodeException("Pulses do not differ")
+    if len(pulse_bins) > 2:
+        raise IRDecodeException("Only mark & space handled")
+
+    mark = min(pulse_bins[0][0], pulse_bins[1][0])
+    space = max(pulse_bins[0][0], pulse_bins[1][0])
+
+    if outliers:
+        # skip outliers
+        pulses = [
+            p for p in pulses if not (outliers[0] * 0.75) <= p <= (outliers[0] * 1.25)
+        ]
+    # convert marks/spaces to 0 and 1
+    for i, pulse_length in enumerate(pulses):
+        if (space * 0.75) <= pulse_length <= (space * 1.25):
+            pulses[i] = False
+        elif (mark * 0.75) <= pulse_length <= (mark * 1.25):
+            pulses[i] = True
+        else:
+            raise IRDecodeException("Pulses outside mark/space")
+
+    # convert bits to bytes!
+    output = [0] * ((len(pulses) + 7) // 8)
+    for i, pulse_length in enumerate(pulses):
+        output[i // 8] = output[i // 8] << 1
+        if pulse_length:
+            output[i // 8] |= 1
+    return output
+
+
 class GenericDecode:
     """Generic decoding of infrared signals"""
 
     def bin_data(self, pulses):
-        """Compute bins of pulse lengths where pulses are +-25% of the average.
-
-        :param list pulses: Input pulse lengths
-        """
-        bins = [[pulses[0], 0]]
-
-        for _, pulse in enumerate(pulses):
-            matchedbin = False
-            # print(pulse, end=": ")
-            for b, pulse_bin in enumerate(bins):
-                if pulse_bin[0] * 0.75 <= pulse <= pulse_bin[0] * 1.25:
-                    # print("matches bin")
-                    bins[b][0] = (pulse_bin[0] + pulse) // 2  # avg em
-                    bins[b][1] += 1  # track it
-                    matchedbin = True
-                    break
-            if not matchedbin:
-                bins.append([pulse, 1])
-            # print(bins)
-        return bins
+        "Wraps the top-level function bin_data for backward-compatibility."
+        return bin_data(pulses)
 
     def decode_bits(self, pulses):
-        """Decode the pulses into bits."""
-        # pylint: disable=too-many-branches,too-many-statements
-
-        # special exception for NEC repeat code!
-        if (
-            (len(pulses) == 3)
-            and (8000 <= pulses[0] <= 10000)
-            and (2000 <= pulses[1] <= 3000)
-            and (450 <= pulses[2] <= 700)
-        ):
-            raise IRNECRepeatException()
-
-        if len(pulses) < 10:
-            raise IRDecodeException("10 pulses minimum")
-
-        # Ignore any header (evens start at 1), and any trailer.
-        if len(pulses) % 2 == 0:
-            pulses_end = -1
-        else:
-            pulses_end = None
-
-        evens = pulses[1:pulses_end:2]
-        odds = pulses[2:pulses_end:2]
-
-        # bin both halves
-        even_bins = self.bin_data(evens)
-        odd_bins = self.bin_data(odds)
-
-        outliers = [b[0] for b in (even_bins + odd_bins) if b[1] == 1]
-        even_bins = [b for b in even_bins if b[1] > 1]
-        odd_bins = [b for b in odd_bins if b[1] > 1]
-
-        if not even_bins or not odd_bins:
-            raise IRDecodeException("Not enough data")
-
-        if len(even_bins) == 1:
-            pulses = odds
-            pulse_bins = odd_bins
-        elif len(odd_bins) == 1:
-            pulses = evens
-            pulse_bins = even_bins
-        else:
-            raise IRDecodeException("Both even/odd pulses differ")
-
-        if len(pulse_bins) == 1:
-            raise IRDecodeException("Pulses do not differ")
-        if len(pulse_bins) > 2:
-            raise IRDecodeException("Only mark & space handled")
-
-        mark = min(pulse_bins[0][0], pulse_bins[1][0])
-        space = max(pulse_bins[0][0], pulse_bins[1][0])
-
-        if outliers:
-            # skip outliers
-            pulses = [
-                p
-                for p in pulses
-                if not (outliers[0] * 0.75) <= p <= (outliers[0] * 1.25)
-            ]
-        # convert marks/spaces to 0 and 1
-        for i, pulse_length in enumerate(pulses):
-            if (space * 0.75) <= pulse_length <= (space * 1.25):
-                pulses[i] = False
-            elif (mark * 0.75) <= pulse_length <= (mark * 1.25):
-                pulses[i] = True
-            else:
-                raise IRDecodeException("Pulses outside mark/space")
-
-        # convert bits to bytes!
-        output = [0] * ((len(pulses) + 7) // 8)
-        for i, pulse_length in enumerate(pulses):
-            output[i // 8] = output[i // 8] << 1
-            if pulse_length:
-                output[i // 8] |= 1
-        return output
+        "Wraps the top-level function decode_bits for backward-compatibility."
+        return decode_bits(pulses)
 
     def _read_pulses_non_blocking(
         self, input_pulses, max_pulse=10000, pulse_window=0.10
