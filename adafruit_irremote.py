@@ -50,8 +50,8 @@ Implementation Notes
   https://github.com/adafruit/circuitpython/releases
 
 """
-
 import array
+from collections import namedtuple
 import time
 
 __version__ = "0.0.0-auto.0"
@@ -96,7 +96,7 @@ def decode_bits(pulses):
     # TODO The name pulses is redefined several times below, so we'll stash the
     # original in a separate variable for now. It might be worth refactoring to
     # avoid redefining pulses, for the sake of readability.
-    input_pulses = pulses
+    input_pulses = tuple(pulses)
     pulses = list(pulses)  # Copy to avoid mutating input.
 
     # special exception for NEC repeat code!
@@ -170,52 +170,17 @@ def decode_bits(pulses):
         output[i // 8] = output[i // 8] << 1
         if pulse_length:
             output[i // 8] |= 1
-    return IRMessage(input_pulses, code=output)
+    return IRMessage(tuple(input_pulses), code=tuple(output))
 
 
-class BaseIRMessage:
-    "Contains the pulses that were parsed as one message."
+IRMessage = namedtuple("IRMessage", ("pulses", "code"))
+"Pulses and the code they were parsed into"
 
-    def __init__(self, pulses):
-        # Stash an immutable copy of pulses.
-        self.pulses = tuple(pulses)
+UnparseableIRMessage = namedtuple("IRMessage", ("pulses", "reason"))
+"Pulses and the reason that they could not be parsed into a code"
 
-    def __repr__(self):
-        return f"{self.__class__.__name__}({self.pulses})"
-
-
-class IRMessage(BaseIRMessage):
-    """
-    Message interpreted as bytes.
-
-    >>> m.code  # the output of interest (the parsed bytes)
-    >>> m.pulses  # the original pulses
-    """
-
-    def __init__(self, pulses, *, code):
-        super().__init__(pulses)
-        self.code = code
-
-    def __repr__(self):
-        return f"{self.__class__.__name__}" f"(pulses={self.pulses}, code={self.code})"
-
-
-class UnparseableIRMessage(BaseIRMessage):
-    "Message that could not be interpreted."
-
-    def __init__(self, pulses, *, reason):
-        super().__init__(pulses)
-        self.reason = reason
-
-    def __repr__(self):
-        return (
-            f"{self.__class__.__name__}" f"(pulses={self.pulses}, reason={self.reason})"
-        )
-
-
-class NECRepeatIRMessage(BaseIRMessage):
-    "Message interpreted as an NEC repeat code."
-    pass
+NECRepeatIRMessage = namedtuple("NECRepeatIRMessage", ("pulses",))
+"Pulses interpreted as an NEC repeat code"
 
 
 class NonblockingGenericDecode:
