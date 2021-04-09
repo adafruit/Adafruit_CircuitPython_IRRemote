@@ -235,11 +235,11 @@ class GenericDecode:
 class GenericTransmit:
     """Generic infrared transmit class that handles encoding.
 
-        :param int header: The length of header in microseconds
-        :param int one: The length of a one in microseconds
-        :param int zero: The length of a zero in microseconds
-        :param int trail: The length of the trail in microseconds, set to None to disable
-        :param bool debug: Enable debug output, default False
+    :param int header: The length of header in microseconds
+    :param int one: The length of a one in microseconds
+    :param int zero: The length of a zero in microseconds
+    :param int trail: The length of the trail in microseconds, set to None to disable
+    :param bool debug: Enable debug output, default False
     """
 
     def __init__(self, header, one, zero, trail, *, debug=False):
@@ -263,9 +263,9 @@ class GenericTransmit:
         if nbits is not None and nbits < bits_to_send:
             bits_to_send = nbits
 
-        durations = array.array("H", [0] * (2 +
-                                            bits_to_send * 2 +
-                                            (0 if self.trail is None else 1)))
+        durations = array.array(
+            "H", [0] * (2 + bits_to_send * 2 + (0 if self.trail is None else 1))
+        )
 
         durations[0] = self.header[0]
         durations[1] = self.header[1]
