@@ -233,25 +233,46 @@ class GenericDecode:
 
 
 class GenericTransmit:
-    """Generic infrared transmit class that handles encoding."""
+    """Generic infrared transmit class that handles encoding.
 
-    def __init__(self, header, one, zero, trail):
+    :param int header: The length of header in microseconds
+    :param int one: The length of a one in microseconds
+    :param int zero: The length of a zero in microseconds
+    :param int trail: The length of the trail in microseconds, set to None to disable
+    :param bool debug: Enable debug output, default False
+    """
+
+    def __init__(self, header, one, zero, trail, *, debug=False):
         self.header = header
         self.one = one
         self.zero = zero
         self.trail = trail
+        self.debug = debug
 
-    def transmit(self, pulseout, data):
+    def transmit(self, pulseout, data, *, repeat=0, delay=0, nbits=None):
         """Transmit the ``data`` using the ``pulseout``.
 
         :param pulseio.PulseOut pulseout: PulseOut to transmit on
         :param bytearray data: Data to transmit
+        :param int repeat: Number of additional retransmissions of the data, default 0
+        :param float delay: Delay between any retransmissions, default 0
+        :param int nbits: Optional number of bits to send,
+            useful to send fewer bits than in the data bytes
         """
-        durations = array.array("H", [0] * (2 + len(data) * 8 * 2 + 1))
+        bits_to_send = len(data) * 8
+        if nbits is not None and nbits < bits_to_send:
+            bits_to_send = nbits
+
+        durations = array.array(
+            "H", [0] * (2 + bits_to_send * 2 + (0 if self.trail is None else 1))
+        )
+
         durations[0] = self.header[0]
         durations[1] = self.header[1]
-        durations[-1] = self.trail
+        if self.trail is not None:
+            durations[-1] = self.trail
         out = 2
+        bit_count = 0
         for byte_index, _ in enumerate(data):
             for i in range(7, -1, -1):
                 if (data[byte_index] & 1 << i) > 0:
@@ -261,6 +282,15 @@ class GenericTransmit:
                     durations[out] = self.zero[0]
                     durations[out + 1] = self.zero[1]
                 out += 2
+                bit_count += 1
+                if bit_count >= bits_to_send:
+                    break
 
-        # print(durations)
+        if self.debug:
+            print(durations)
+
         pulseout.send(durations)
+        for _ in range(repeat):
+            if delay:
+                time.sleep(delay)
+            pulseout.send(durations)
