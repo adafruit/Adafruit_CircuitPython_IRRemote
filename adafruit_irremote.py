@@ -196,8 +196,7 @@ class NonblockingGenericDecode:
     Decode pulses into bytes in a non-blocking fashion.
 
     :param ~pulseio.PulseIn input_pulses: Object to read pulses from
-    :param int max_pulse: Pulse duration to end a burst.  Units are
-    microseconds.
+    :param int max_pulse: Pulse duration to end a burst.  Units are microseconds.
 
     >>> pulses = PulseIn(...)
     >>> decoder = NonblockingGenericDecoder(pulses)
