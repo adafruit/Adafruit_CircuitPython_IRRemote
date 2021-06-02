@@ -254,11 +254,11 @@ class GenericDecode:
     # this here for back-compat, hence we disable pylint for that specific
     # complaint.
 
-    def bin_data(self, pulses):  # pylint: disable=R0201
+    def bin_data(self, pulses):  # pylint: disable=no-self-use
         "Wraps the top-level function bin_data for backward-compatibility."
         return bin_data(pulses)
 
-    def decode_bits(self, pulses):  # pylint: disable=R0201
+    def decode_bits(self, pulses):  # pylint: disable=no-self-use
         "Wraps the top-level function decode_bits for backward-compatibility."
         result = decode_bits(pulses)
         if isinstance(result, NECRepeatIRMessage):
@@ -268,7 +268,7 @@ class GenericDecode:
 
     def _read_pulses_non_blocking(
         self, input_pulses, max_pulse=10000, pulse_window=0.10
-    ):  # pylint: disable=R0201
+    ):  # pylint: disable=no-self-use
         """Read out a burst of pulses without blocking until pulses stop for a specified
         period (pulse_window), pruning pulses after a pulse longer than ``max_pulse``.
 
