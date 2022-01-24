@@ -3,7 +3,7 @@ Introduction
 ============
 
 .. image:: https://readthedocs.org/projects/adafruit-circuitpython-irremote/badge/?version=latest
-    :target: https://circuitpython.readthedocs.io/projects/irremote/en/latest/
+    :target: https://docs.circuitpython.org/projects/irremote/en/latest/
     :alt: Documentation Status
 
 .. image :: https://img.shields.io/discord/327254708534116352.svg
@@ -89,7 +89,7 @@ Usage Example
 Documentation
 =============
 
-API documentation for this library can be found on `Read the Docs <https://circuitpython.readthedocs.io/projects/irremote/en/latest/>`_.
+API documentation for this library can be found on `Read the Docs <https://docs.circuitpython.org/projects/irremote/en/latest/>`_.
 
 Contributing
 ============
