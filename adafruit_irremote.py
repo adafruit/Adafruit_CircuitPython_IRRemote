@@ -265,6 +265,7 @@ class GenericDecode:
             raise IRNECRepeatException()
         if isinstance(result, UnparseableIRMessage):
             raise IRDecodeException("10 pulses minimum")
+        return result
 
     def _read_pulses_non_blocking(
         self, input_pulses, max_pulse=10000, pulse_window=0.10
