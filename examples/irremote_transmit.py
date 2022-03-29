@@ -16,7 +16,7 @@ button.direction = digitalio.Direction.INPUT
 button.pull = digitalio.Pull.DOWN
 
 # Create a 'pwmio' output, to send infrared signals on the IR transmitter @ 38KHz
-pwm = pwmio.PWMOut(board.IR_TX, frequency=38000, duty_cycle=2 ** 15)
+pwm = pwmio.PWMOut(board.IR_TX, frequency=38000, duty_cycle=2**15)
 pulseout = pulseio.PulseOut(pwm)
 # Create an encoder that will take numbers and turn them into NEC IR pulses
 encoder = adafruit_irremote.GenericTransmit(
