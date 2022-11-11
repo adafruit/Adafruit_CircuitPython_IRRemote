@@ -235,7 +235,7 @@ class NonblockingGenericDecode:
                 except FailedToDecode as err:
                     # If you want to debug failed decodes, this would be a good
                     # place to print/log or (re-)raise.
-                    (unparseable_message,) = err.args
+                    unparseable_message = err.args[0]
                     yield unparseable_message
                 self._unparsed_pulses.clear()
                 # TODO Do we need to consume and throw away more pulses here?
