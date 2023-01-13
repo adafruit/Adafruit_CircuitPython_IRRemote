@@ -19,7 +19,7 @@ while True:
         print("Decoded:", code)
     except adafruit_irremote.IRNECRepeatException:  # unusual short code!
         print("NEC repeat!")
-    except adafruit_irremote.IRDecodeException as e:  # failed to decode
+    except (adafruit_irremote.IRDecodeException, adafruit_irremote.FailedToDecode) as e:  # failed to decode
         print("Failed to decode: ", e.args)
 
     print("----------------------------")
