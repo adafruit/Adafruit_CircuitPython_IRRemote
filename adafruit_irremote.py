@@ -201,7 +201,7 @@ class NonblockingGenericDecode:
     >>> pulses = PulseIn(...)
     >>> decoder = NonblockingGenericDecoder(pulses)
     >>> for message in decoder.read():
-    ...     if isinstace(message, IRMessage):
+    ...     if isinstance(message, IRMessage):
     ...         message.code  # TA-DA! Do something with this in your application.
     ...     else:
     ...         # message is either NECRepeatIRMessage or
@@ -260,11 +260,12 @@ class GenericDecode:
 
     def decode_bits(self, pulses):  # pylint: disable=no-self-use
         "Wraps the top-level function decode_bits for backward-compatibility."
-        result = decode_bits(pulses)
+        try:
+            result = decode_bits(pulses)
+        except FailedToDecode as err:
+            raise IRDecodeException from err
         if isinstance(result, NECRepeatIRMessage):
             raise IRNECRepeatException()
-        if isinstance(result, UnparseableIRMessage):
-            raise IRDecodeException("10 pulses minimum")
         return result.code
 
     def _read_pulses_non_blocking(
