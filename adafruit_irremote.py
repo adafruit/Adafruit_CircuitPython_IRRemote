@@ -2,7 +2,18 @@
 #
 # SPDX-License-Identifier: MIT
 
+# pylint: disable=missing-module-docstring
 from __future__ import annotations
+
+import array
+from collections import namedtuple
+import time
+
+try:
+    from typing import List, NamedTuple, Optional, Tuple
+    from pulseio import PulseOut
+except ImportError:
+    pass
 
 """
 `adafruit_irremote`
@@ -52,14 +63,6 @@ Implementation Notes
   https://github.com/adafruit/circuitpython/releases
 
 """
-import array
-from collections import namedtuple
-import time
-
-try:
-    from typing import List, NamedTuple, Optional, Tuple
-except ImportError:
-    pass
 
 __version__ = "0.0.0+auto.0"
 __repo__ = "https://github.com/adafruit/Adafruit_CircuitPython_IRRemote.git"
