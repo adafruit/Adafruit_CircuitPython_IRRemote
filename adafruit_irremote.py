@@ -366,7 +366,7 @@ class GenericTransmit:
         data: bytearray,
         *,
         repeat: int = 0,
-        delay: int = 0,
+        delay: float = 0.0,
         nbits: Optional[int] = None,
     ) -> None:
         """Transmit the ``data`` using the ``pulseout``.
@@ -374,7 +374,7 @@ class GenericTransmit:
         :param pulseio.PulseOut pulseout: PulseOut to transmit on
         :param bytearray data: Data to transmit
         :param int repeat: Number of additional retransmissions of the data, default 0
-        :param float delay: Delay between any retransmissions, default 0
+        :param float delay: Delay between any retransmissions, default 0.0
         :param int nbits: Optional number of bits to send,
             useful to send fewer bits than in the data bytes
         """
