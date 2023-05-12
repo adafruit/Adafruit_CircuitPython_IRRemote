@@ -2,6 +2,19 @@
 #
 # SPDX-License-Identifier: MIT
 
+# pylint: disable=missing-module-docstring
+from __future__ import annotations
+
+import array
+from collections import namedtuple
+import time
+
+try:
+    from typing import List, NamedTuple, Optional, Tuple
+    from pulseio import PulseOut
+except ImportError:
+    pass
+
 """
 `adafruit_irremote`
 ====================================================
@@ -50,9 +63,6 @@ Implementation Notes
   https://github.com/adafruit/circuitpython/releases
 
 """
-import array
-from collections import namedtuple
-import time
 
 __version__ = "0.0.0+auto.0"
 __repo__ = "https://github.com/adafruit/Adafruit_CircuitPython_IRRemote.git"
@@ -66,7 +76,7 @@ class IRNECRepeatException(Exception):
     """Exception when a NEC repeat is decoded"""
 
 
-def bin_data(pulses):
+def bin_data(pulses: List) -> List[List]:
     """Compute bins of pulse lengths where pulses are +-25% of the average.
 
     :param list pulses: Input pulse lengths
@@ -89,7 +99,7 @@ def bin_data(pulses):
     return bins
 
 
-def decode_bits(pulses):
+def decode_bits(pulses: List) -> NamedTuple:
     """Decode the pulses into bits."""
     # pylint: disable=too-many-branches,too-many-statements
 
@@ -211,12 +221,12 @@ class NonblockingGenericDecode:
     ...         ...
     """
 
-    def __init__(self, pulses, max_pulse=10_000):
+    def __init__(self, pulses: List, max_pulse: int = 10_000) -> None:
         self.pulses = pulses  # PulseIn
         self.max_pulse = max_pulse
         self._unparsed_pulses = []  # internal buffer of partial messages
 
-    def read(self):
+    def read(self) -> None:
         """
         Consume all pulses from PulseIn. Yield decoded messages, if any.
 
@@ -254,11 +264,11 @@ class GenericDecode:
     # this here for back-compat, hence we disable pylint for that specific
     # complaint.
 
-    def bin_data(self, pulses):  # pylint: disable=no-self-use
+    def bin_data(self, pulses: List) -> List[List]:  # pylint: disable=no-self-use
         "Wraps the top-level function bin_data for backward-compatibility."
         return bin_data(pulses)
 
-    def decode_bits(self, pulses):  # pylint: disable=no-self-use
+    def decode_bits(self, pulses: List) -> Tuple:  # pylint: disable=no-self-use
         "Wraps the top-level function decode_bits for backward-compatibility."
         try:
             result = decode_bits(pulses)
@@ -268,9 +278,9 @@ class GenericDecode:
             raise IRNECRepeatException()
         return result.code
 
-    def _read_pulses_non_blocking(
-        self, input_pulses, max_pulse=10000, pulse_window=0.10
-    ):  # pylint: disable=no-self-use
+    def _read_pulses_non_blocking(  # pylint: disable=no-self-use
+        self, input_pulses: List, max_pulse: int = 10000, pulse_window: float = 0.10
+    ) -> Optional[List]:
         """Read out a burst of pulses without blocking until pulses stop for a specified
         period (pulse_window), pruning pulses after a pulse longer than ``max_pulse``.
 
@@ -304,13 +314,13 @@ class GenericDecode:
 
     def read_pulses(
         self,
-        input_pulses,
+        input_pulses: list,
         *,
-        max_pulse=10000,
-        blocking=True,
-        pulse_window=0.10,
-        blocking_delay=0.10,
-    ):
+        max_pulse: int = 10000,
+        blocking: bool = True,
+        pulse_window: float = 0.10,
+        blocking_delay: float = 0.10,
+    ) -> Optional[List]:
         """Read out a burst of pulses until pulses stop for a specified
         period (pulse_window), pruning pulses after a pulse longer than ``max_pulse``.
 
@@ -342,20 +352,30 @@ class GenericTransmit:
     :param bool debug: Enable debug output, default False
     """
 
-    def __init__(self, header, one, zero, trail, *, debug=False):
+    def __init__(
+        self, header: int, one: int, zero: int, trail: int, *, debug: bool = False
+    ) -> None:
         self.header = header
         self.one = one
         self.zero = zero
         self.trail = trail
         self.debug = debug
 
-    def transmit(self, pulseout, data, *, repeat=0, delay=0, nbits=None):
+    def transmit(
+        self,
+        pulseout: PulseOut,
+        data: bytearray,
+        *,
+        repeat: int = 0,
+        delay: float = 0.0,
+        nbits: Optional[int] = None,
+    ) -> None:
         """Transmit the ``data`` using the ``pulseout``.
 
         :param pulseio.PulseOut pulseout: PulseOut to transmit on
         :param bytearray data: Data to transmit
         :param int repeat: Number of additional retransmissions of the data, default 0
-        :param float delay: Delay between any retransmissions, default 0
+        :param float delay: Delay between any retransmissions, default 0.0
         :param int nbits: Optional number of bits to send,
             useful to send fewer bits than in the data bytes
         """
