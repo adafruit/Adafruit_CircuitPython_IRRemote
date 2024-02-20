@@ -238,17 +238,17 @@ class NonblockingGenericDecode:
         while self.pulses:
             pulse = self.pulses.popleft()
             if pulse <= self.max_pulse:
-              self._unparsed_pulses.append(pulse)
+                self._unparsed_pulses.append(pulse)
             else:
                 # End of message! Decode it and yield a BaseIRMessage.
-                result = None;
+                result = None
                 try:
                     result = decode_bits(self._unparsed_pulses)
                 except FailedToDecode as err:
                     # If you want to debug failed decodes, this would be a good
                     # place to print/log or (re-)raise.
                     result = err.args[0]
-                 
+
                 self._unparsed_pulses.clear()
                 yield result
 
