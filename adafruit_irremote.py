@@ -237,23 +237,20 @@ class NonblockingGenericDecode:
         # Consume from PulseIn.
         while self.pulses:
             pulse = self.pulses.popleft()
-            self._unparsed_pulses.append(pulse)
-            if pulse > self.max_pulse:
+            if pulse <= self.max_pulse:
+                self._unparsed_pulses.append(pulse)
+            else:
                 # End of message! Decode it and yield a BaseIRMessage.
+                result = None
                 try:
-                    yield decode_bits(self._unparsed_pulses)
+                    result = decode_bits(self._unparsed_pulses)
                 except FailedToDecode as err:
                     # If you want to debug failed decodes, this would be a good
                     # place to print/log or (re-)raise.
-                    unparseable_message = err.args[0]
-                    yield unparseable_message
+                    result = err.args[0]
+
                 self._unparsed_pulses.clear()
-                # TODO Do we need to consume and throw away more pulses here?
-                # I'm unclear about the role that "pruning" plays in the
-                # original implementation in GenericDecode._read_pulses_non_blocking.
-        # When we reach here, we have consumed everything from PulseIn.
-        # If there are some pulses in self._unparsed_pulses, they represent
-        # partial messages. We'll finish them next time read() is called.
+                yield result
 
 
 class GenericDecode:
