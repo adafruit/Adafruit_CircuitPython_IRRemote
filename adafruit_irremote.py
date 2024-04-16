@@ -353,10 +353,10 @@ class GenericTransmit:
         self,
         header: List[int],
         one: List[int],
-        zero: List[int], 
+        zero: List[int],
         trail: int,
         *,
-        debug: bool = False
+        debug: bool = False,
     ) -> None:
         self.header = header
         self.one = one
@@ -388,8 +388,8 @@ class GenericTransmit:
 
         durations = array.array(
             "H",
-            [0] 
-            * (len(self.header) + bits_to_send * 2 + (0 if self.trail is None else 1))
+            [0]
+            * (len(self.header) + bits_to_send * 2 + (0 if self.trail is None else 1)),
         )
 
         for i, _ in enumerate(self.header):
