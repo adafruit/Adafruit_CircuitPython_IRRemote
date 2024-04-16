@@ -350,7 +350,13 @@ class GenericTransmit:
     """
 
     def __init__(
-        self, header: List[int], one: List[int], zero: List[int], trail: int, *, debug: bool = False
+        self,
+        header: List[int],
+        one: List[int],
+        zero: List[int], 
+        trail: int,
+        *,
+        debug: bool = False
     ) -> None:
         self.header = header
         self.one = one
@@ -381,12 +387,14 @@ class GenericTransmit:
             bits_to_send = nbits
 
         durations = array.array(
-            "H", [0] * (len(self.header) + bits_to_send * 2 + (0 if self.trail is None else 1))
+            "H",
+            [0] 
+            * (len(self.header) + bits_to_send * 2 + (0 if self.trail is None else 1))
         )
-        
+
         for i, _ in enumerate(self.header):
             durations[i] = self.header[i]
-    
+
         if self.trail is not None:
             durations[-1] = self.trail
         out = len(self.header)
