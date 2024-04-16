@@ -171,9 +171,9 @@ def decode_bits(pulses: List) -> NamedTuple:
     # convert marks/spaces to 0 and 1
     for i, pulse_length in enumerate(pulses):
         if (space * 0.75) <= pulse_length <= (space * 1.25):
-            pulses[i] = False
-        elif (mark * 0.75) <= pulse_length <= (mark * 1.25):
             pulses[i] = True
+        elif (mark * 0.75) <= pulse_length <= (mark * 1.25):
+            pulses[i] = False
         else:
             msg = UnparseableIRMessage(input_pulses, reason="Pulses outside mark/space")
             raise FailedToDecode(msg)
@@ -342,15 +342,15 @@ class GenericDecode:
 class GenericTransmit:
     """Generic infrared transmit class that handles encoding.
 
-    :param int header: The length of header in microseconds
-    :param int one: The length of a one in microseconds
-    :param int zero: The length of a zero in microseconds
+    :param List[int] header: The length of header in microseconds, the length should be even
+    :param List[int] one: The length of a one in microseconds
+    :param List[int] zero: The length of a zero in microseconds
     :param int trail: The length of the trail in microseconds, set to None to disable
     :param bool debug: Enable debug output, default False
     """
 
     def __init__(
-        self, header: int, one: int, zero: int, trail: int, *, debug: bool = False
+        self, header: List[int], one: List[int], zero: List[int], trail: int, *, debug: bool = False
     ) -> None:
         self.header = header
         self.one = one
@@ -381,14 +381,15 @@ class GenericTransmit:
             bits_to_send = nbits
 
         durations = array.array(
-            "H", [0] * (2 + bits_to_send * 2 + (0 if self.trail is None else 1))
+            "H", [0] * (len(self.header) + bits_to_send * 2 + (0 if self.trail is None else 1))
         )
-
-        durations[0] = self.header[0]
-        durations[1] = self.header[1]
+        
+        for i, _ in enumerate(self.header):
+            durations[i] = self.header[i]
+    
         if self.trail is not None:
             durations[-1] = self.trail
-        out = 2
+        out = len(self.header)
         bit_count = 0
         for byte_index, _ in enumerate(data):
             for i in range(7, -1, -1):
