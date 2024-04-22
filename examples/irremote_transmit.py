@@ -18,7 +18,7 @@ button.pull = digitalio.Pull.DOWN
 pulseout = pulseio.PulseOut(board.IR_TX, frequency=38000, duty_cycle=2**15)
 # Create an encoder that will take numbers and turn them into NEC IR pulses
 encoder = adafruit_irremote.GenericTransmit(
-    header=[9000, 4500], one=[560, 1700], zero=[560, 1700], trail=560
+    header=[9000, 4500], one=[560, 1700], zero=[560, 560], trail=560
 )
 
 while True:
