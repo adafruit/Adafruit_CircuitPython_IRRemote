@@ -2,11 +2,13 @@
 # SPDX-License-Identifier: MIT
 
 """IR transmit example using Circuit Playground Express"""
-# pylint: disable-msg=no-member
+
 import time
-import pulseio
+
 import board
 import digitalio
+import pulseio
+
 import adafruit_irremote
 
 # Create a button object to trigger IR transmit

@@ -2,15 +2,15 @@
 #
 # SPDX-License-Identifier: MIT
 
-# pylint: disable=missing-module-docstring
 from __future__ import annotations
 
 import array
-from collections import namedtuple
 import time
+from collections import namedtuple
 
 try:
-    from typing import List, NamedTuple, Optional, Tuple
+    from typing import NamedTuple, Optional
+
     from pulseio import PulseOut
 except ImportError:
     pass
@@ -76,7 +76,7 @@ class IRNECRepeatException(Exception):
     """Exception when a NEC repeat is decoded"""
 
 
-def bin_data(pulses: List) -> List[List]:
+def bin_data(pulses: list) -> list[list]:
     """Compute bins of pulse lengths where pulses are +-25% of the average.
 
     :param list pulses: Input pulse lengths
@@ -99,9 +99,8 @@ def bin_data(pulses: List) -> List[List]:
     return bins
 
 
-def decode_bits(pulses: List) -> NamedTuple:
+def decode_bits(pulses: list) -> NamedTuple:
     """Decode the pulses into bits."""
-    # pylint: disable=too-many-branches,too-many-statements
 
     # TODO The name pulses is redefined several times below, so we'll stash the
     # original in a separate variable for now. It might be worth refactoring to
@@ -165,9 +164,7 @@ def decode_bits(pulses: List) -> NamedTuple:
 
     if outliers:
         # skip outliers
-        pulses = [
-            p for p in pulses if not (outliers[0] * 0.75) <= p <= (outliers[0] * 1.25)
-        ]
+        pulses = [p for p in pulses if not (outliers[0] * 0.75) <= p <= (outliers[0] * 1.25)]
     # convert marks/spaces to 0 and 1
     for i, pulse_length in enumerate(pulses):
         if (space * 0.75) <= pulse_length <= (space * 1.25):
@@ -221,7 +218,7 @@ class NonblockingGenericDecode:
     ...         ...
     """
 
-    def __init__(self, pulses: List, max_pulse: int = 10_000) -> None:
+    def __init__(self, pulses: list, max_pulse: int = 10_000) -> None:
         self.pulses = pulses  # PulseIn
         self.max_pulse = max_pulse
         self._unparsed_pulses = []  # internal buffer of partial messages
@@ -261,11 +258,11 @@ class GenericDecode:
     # this here for back-compat, hence we disable pylint for that specific
     # complaint.
 
-    def bin_data(self, pulses: List) -> List[List]:  # pylint: disable=no-self-use
+    def bin_data(self, pulses: list) -> list[list]:  # noqa: PLR6301
         "Wraps the top-level function bin_data for backward-compatibility."
         return bin_data(pulses)
 
-    def decode_bits(self, pulses: List) -> Tuple:  # pylint: disable=no-self-use
+    def decode_bits(self, pulses: list) -> tuple:  # noqa: PLR6301
         "Wraps the top-level function decode_bits for backward-compatibility."
         try:
             result = decode_bits(pulses)
@@ -275,9 +272,9 @@ class GenericDecode:
             raise IRNECRepeatException()
         return result.code
 
-    def _read_pulses_non_blocking(  # pylint: disable=no-self-use
-        self, input_pulses: List, max_pulse: int = 10000, pulse_window: float = 0.10
-    ) -> Optional[List]:
+    def _read_pulses_non_blocking(  # noqa: PLR6301
+        self, input_pulses: list, max_pulse: int = 10000, pulse_window: float = 0.10
+    ) -> Optional[list]:
         """Read out a burst of pulses without blocking until pulses stop for a specified
         period (pulse_window), pruning pulses after a pulse longer than ``max_pulse``.
 
@@ -317,7 +314,7 @@ class GenericDecode:
         blocking: bool = True,
         pulse_window: float = 0.10,
         blocking_delay: float = 0.10,
-    ) -> Optional[List]:
+    ) -> Optional[list]:
         """Read out a burst of pulses until pulses stop for a specified
         period (pulse_window), pruning pulses after a pulse longer than ``max_pulse``.
 
@@ -330,9 +327,7 @@ class GenericDecode:
         :param float blocking_delay: delay between pulse checks when blocking
         """
         while True:
-            pulses = self._read_pulses_non_blocking(
-                input_pulses, max_pulse, pulse_window
-            )
+            pulses = self._read_pulses_non_blocking(input_pulses, max_pulse, pulse_window)
             if blocking and pulses is None:
                 time.sleep(blocking_delay)
                 continue
@@ -351,9 +346,9 @@ class GenericTransmit:
 
     def __init__(
         self,
-        header: List[int],
-        one: List[int],
-        zero: List[int],
+        header: list[int],
+        one: list[int],
+        zero: list[int],
         trail: int,
         *,
         debug: bool = False,
@@ -388,8 +383,7 @@ class GenericTransmit:
 
         durations = array.array(
             "H",
-            [0]
-            * (len(self.header) + bits_to_send * 2 + (0 if self.trail is None else 1)),
+            [0] * (len(self.header) + bits_to_send * 2 + (0 if self.trail is None else 1)),
         )
 
         for i, _ in enumerate(self.header):

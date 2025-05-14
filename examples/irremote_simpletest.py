@@ -3,8 +3,9 @@
 
 # Circuit Playground Express Demo Code
 # Adjust the pulseio 'board.PIN' if using something else
-import pulseio
 import board
+import pulseio
+
 import adafruit_irremote
 
 pulsein = pulseio.PulseIn(board.REMOTEIN, maxlen=120, idle_state=True)
