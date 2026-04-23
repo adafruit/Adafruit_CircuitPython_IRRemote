@@ -178,7 +178,7 @@ def decode_bits(pulses: list) -> NamedTuple:
     # convert bits to bytes!
     output = [0] * ((len(pulses) + 7) // 8)
     for i, pulse_length in enumerate(pulses):
-        output[i // 8] = output[i // 8] << 1
+        output[i // 8] <<= 1
         if pulse_length:
             output[i // 8] |= 1
     return IRMessage(tuple(input_pulses), code=tuple(output))
