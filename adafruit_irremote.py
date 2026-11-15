@@ -198,6 +198,15 @@ class FailedToDecode(Exception):
     "Raised by decode_bits. Error argument is UnparseableIRMessage"
 
 
+def _is_complete_nec(pulses: list) -> bool:
+    """True when pulses hold a whole NEC frame (67 pulses) or NEC repeat code (3 pulses)."""
+    if not 8000 <= pulses[0] <= 10000:
+        return False
+    if len(pulses) == 3:
+        return 2000 <= pulses[1] <= 3000 and 450 <= pulses[2] <= 700
+    return len(pulses) == 67 and 4000 <= pulses[1] <= 5000
+
+
 class NonblockingGenericDecode:
     """
     Decode pulses into bytes in a non-blocking fashion.
@@ -236,18 +245,25 @@ class NonblockingGenericDecode:
             pulse = self.pulses.popleft()
             if pulse <= self.max_pulse:
                 self._unparsed_pulses.append(pulse)
-            else:
-                # End of message! Decode it and yield a BaseIRMessage.
-                result = None
-                try:
-                    result = decode_bits(self._unparsed_pulses)
-                except FailedToDecode as err:
-                    # If you want to debug failed decodes, this would be a good
-                    # place to print/log or (re-)raise.
-                    result = err.args[0]
+                # A whole NEC frame or repeat code is a complete message, so
+                # end it now instead of waiting for the gap before the next one.
+                if not _is_complete_nec(self._unparsed_pulses):
+                    continue
+            elif not self._unparsed_pulses:
+                # A gap with nothing before it: the idle time before the first
+                # message, or the gap after a message that already ended.
+                continue
+            # End of message! Decode it and yield a BaseIRMessage.
+            result = None
+            try:
+                result = decode_bits(self._unparsed_pulses)
+            except FailedToDecode as err:
+                # If you want to debug failed decodes, this would be a good
+                # place to print/log or (re-)raise.
+                result = err.args[0]
 
-                self._unparsed_pulses.clear()
-                yield result
+            self._unparsed_pulses.clear()
+            yield result
 
 
 class GenericDecode:
