@@ -206,6 +206,7 @@ class NonblockingGenericDecode:
     :param int max_pulse: Pulse duration to end a burst.  Units are microseconds.
     :param float idle_timeout: Time with no new pulses that ends a burst.  Units are seconds.
         Must be longer than ``max_pulse``, or a pause inside a message would end it.
+        If ``None``, it is the larger of 20 ms and twice ``max_pulse``.
 
     >>> pulses = PulseIn(...)
     >>> decoder = NonblockingGenericDecoder(pulses)
@@ -220,8 +221,12 @@ class NonblockingGenericDecode:
     ...         ...
     """
 
-    def __init__(self, pulses: list, max_pulse: int = 10_000, idle_timeout: float = 0.020) -> None:
-        if idle_timeout * 1_000_000 <= max_pulse:
+    def __init__(
+        self, pulses: list, max_pulse: int = 10_000, idle_timeout: Optional[float] = None
+    ) -> None:
+        if idle_timeout is None:
+            idle_timeout = max(0.020, 2 * max_pulse / 1_000_000)
+        elif idle_timeout * 1_000_000 <= max_pulse:
             raise ValueError("idle_timeout must be longer than max_pulse")
         self.pulses = pulses  # PulseIn
         self.max_pulse = max_pulse
