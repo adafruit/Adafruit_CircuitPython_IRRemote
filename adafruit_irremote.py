@@ -198,21 +198,13 @@ class FailedToDecode(Exception):
     "Raised by decode_bits. Error argument is UnparseableIRMessage"
 
 
-def _is_complete_nec(pulses: list) -> bool:
-    """True when pulses hold a whole NEC frame (67 pulses) or NEC repeat code (3 pulses)."""
-    if not 8000 <= pulses[0] <= 10000:
-        return False
-    if len(pulses) == 3:
-        return 2000 <= pulses[1] <= 3000 and 450 <= pulses[2] <= 700
-    return len(pulses) == 67 and 4000 <= pulses[1] <= 5000
-
-
 class NonblockingGenericDecode:
     """
     Decode pulses into bytes in a non-blocking fashion.
 
     :param ~pulseio.PulseIn input_pulses: Object to read pulses from
     :param int max_pulse: Pulse duration to end a burst.  Units are microseconds.
+    :param float idle_timeout: Time with no new pulses that ends a burst.  Units are seconds.
 
     >>> pulses = PulseIn(...)
     >>> decoder = NonblockingGenericDecoder(pulses)
@@ -227,10 +219,23 @@ class NonblockingGenericDecode:
     ...         ...
     """
 
-    def __init__(self, pulses: list, max_pulse: int = 10_000) -> None:
+    def __init__(self, pulses: list, max_pulse: int = 10_000, idle_timeout: float = 0.020) -> None:
         self.pulses = pulses  # PulseIn
         self.max_pulse = max_pulse
+        self._idle_timeout_ns = int(idle_timeout * 1_000_000_000)
+        self._last_pulse_ns = 0  # when read() last found new pulses
         self._unparsed_pulses = []  # internal buffer of partial messages
+
+    def _end_message(self):
+        # End of message! Decode it and return a BaseIRMessage.
+        try:
+            result = decode_bits(self._unparsed_pulses)
+        except FailedToDecode as err:
+            # If you want to debug failed decodes, this would be a good
+            # place to print/log or (re-)raise.
+            result = err.args[0]
+        self._unparsed_pulses.clear()
+        return result
 
     def read(self) -> None:
         """
@@ -239,31 +244,29 @@ class NonblockingGenericDecode:
         If a partial message is received, this does not block to wait for the
         rest. It stashes the partial message, to be continued the next time it
         is called.
+
+        A message ends at a pulse longer than ``max_pulse``, or when no new
+        pulses have arrived for ``idle_timeout`` seconds. PulseIn records the
+        gap after the last message only when the next message starts, so
+        without the timeout the last message would wait for the next one.
         """
+        now = time.monotonic_ns()
+        found_pulses = False
         # Consume from PulseIn.
         while self.pulses:
+            found_pulses = True
             pulse = self.pulses.popleft()
             if pulse <= self.max_pulse:
                 self._unparsed_pulses.append(pulse)
-                # A whole NEC frame or repeat code is a complete message, so
-                # end it now instead of waiting for the gap before the next one.
-                if not _is_complete_nec(self._unparsed_pulses):
-                    continue
-            elif not self._unparsed_pulses:
-                # A gap with nothing before it: the idle time before the first
-                # message, or the gap after a message that already ended.
-                continue
-            # End of message! Decode it and yield a BaseIRMessage.
-            result = None
-            try:
-                result = decode_bits(self._unparsed_pulses)
-            except FailedToDecode as err:
-                # If you want to debug failed decodes, this would be a good
-                # place to print/log or (re-)raise.
-                result = err.args[0]
+            elif self._unparsed_pulses:
+                yield self._end_message()
+            # Otherwise it is a gap with nothing before it: the idle time
+            # before the first message, or a message that timed out.
 
-            self._unparsed_pulses.clear()
-            yield result
+        if found_pulses:
+            self._last_pulse_ns = now
+        elif self._unparsed_pulses and now - self._last_pulse_ns >= self._idle_timeout_ns:
+            yield self._end_message()
 
 
 class GenericDecode:
